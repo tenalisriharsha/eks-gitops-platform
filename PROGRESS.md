@@ -69,13 +69,21 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
     variable validation
   - `scripts/validate.sh` — fmt check, validate, test, run locally or in CI later
 
-- [ ] **Phase 2 — EKS cluster + IRSA**
-  - EKS module: control plane, managed node groups in private subnets,
-    cluster OIDC provider
-  - IRSA module: reusable IAM role + trust policy per Kubernetes service account
-  - Wire EKS + IRSA into the dev environment alongside the VPC
-  - Terraform tests for EKS/IRSA modules (mocked, plus a real `terraform plan`
-    checklist for when an AWS account is attached)
+- [x] **Phase 2 — EKS cluster + IRSA** *(Night 2)*
+  - EKS module (`terraform/modules/eks`): control plane, managed node group
+    in private subnets, IAM OIDC identity provider for IRSA
+  - IRSA module (`terraform/modules/irsa`): reusable IAM role + trust policy
+    scoped to a single `namespace:service-account` pair, with attachable
+    managed policy ARNs
+  - Wired `module "eks"` and an example `module "irsa_sample_app"` into
+    `terraform/environments/dev/main.tf` alongside the existing VPC module
+  - Terraform native tests (`terraform test` with `mock_provider "aws"` and
+    `mock_provider "tls"`) covering cluster/node-group wiring, IAM trust
+    policies, node sizing validation, and the dev root's end-to-end plan
+  - Switched IAM trust policies from `data "aws_iam_policy_document"` to
+    `jsonencode(...)` — the mocked AWS provider returns a placeholder (not
+    valid JSON) for a data source's computed `.json` attribute, which broke
+    `aws_iam_role.assume_role_policy` validation under `terraform test`
 
 - [ ] **Phase 3 — ArgoCD bootstrap**
   - Helm-based ArgoCD install manifests/values under `gitops/argocd`
@@ -98,21 +106,29 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
   - Final README pass, architecture diagram polish, screenshots if a UI
     component (e.g. ArgoCD UI) is actually stood up and captured
 
-## Resume point for Night 2
+## Resume point for Night 3
 
-Start at **Phase 2**. The VPC module and dev environment root module are in
-place and passing `terraform test`. Next concrete steps:
+Start at **Phase 3**. The VPC, EKS, and IRSA modules are all in place, wired
+together in `terraform/environments/dev`, and passing `terraform test` (30
+assertions across 4 test suites via `./scripts/validate.sh`). Next concrete
+steps:
 
-1. Create `terraform/modules/eks/` (control plane + managed node groups +
-   OIDC provider), wired to the existing `terraform/modules/vpc` outputs
-   (`private_subnet_ids`, `vpc_id`).
-2. Create `terraform/modules/irsa/` (assumable role per service account,
-   parameterized by the EKS module's OIDC provider ARN/URL).
-3. Wire both into `terraform/environments/dev/main.tf` next to the existing
-   `module "vpc"` block.
-4. Add `terraform test` coverage for both new modules using the same
-   `mock_provider "aws"` pattern established in
-   `terraform/modules/vpc/tests/vpc.tftest.hcl`.
-5. Run `scripts/validate.sh` and fix any failures before moving on.
+1. Under `gitops/argocd/`, add Helm-based ArgoCD install manifests/values
+   (or a `helm template` / Terraform `helm_release` approach — decide which
+   and document why in PROGRESS.md).
+2. Define the app-of-apps root `Application` resource (e.g.
+   `gitops/argocd/root-app.yaml`) pointing at `gitops/apps/` in this repo.
+3. Write a bootstrap script/doc (`scripts/bootstrap-argocd.sh` or similar)
+   that installs ArgoCD onto a cluster's kubeconfig and applies the root
+   Application — this is the first step that needs a real cluster
+   (`aws eks update-kubeconfig`), so note clearly in docs what's testable
+   locally (YAML validity, kustomize/helm template rendering) vs. what
+   needs a live EKS cluster from Phase 2's Terraform.
+4. Add whatever automated checks are feasible without a cluster (e.g.
+   `kubeconform`/`kustomize build` validation of the manifests) and wire
+   them into `scripts/validate.sh` or a new script, documenting the split
+   between "runs offline" and "needs a real cluster" in README.md.
+5. Keep the Terraform side green: `./scripts/validate.sh` must still pass
+   after any changes.
 
 STATUS: IN_PROGRESS

@@ -10,6 +10,8 @@ terraform fmt -check -recursive "$repo_root/terraform"
 
 dirs=(
   "$repo_root/terraform/modules/vpc"
+  "$repo_root/terraform/modules/eks"
+  "$repo_root/terraform/modules/irsa"
   "$repo_root/terraform/environments/dev"
 )
 
