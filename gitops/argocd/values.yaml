@@ -1,0 +1,30 @@
+# Helm values for the argo/argo-cd chart (pinned version: see
+# scripts/bootstrap-argocd.sh). Trimmed to a single replica per component —
+# this is a dev-sized cluster, not a production ArgoCD install.
+
+configs:
+  params:
+    # TLS terminates at the Service/Ingress layer in a real deployment; for
+    # the dev bootstrap we talk to argocd-server in plaintext and rely on
+    # `kubectl port-forward` for UI access (see scripts/bootstrap-argocd.sh).
+    server.insecure: true
+
+controller:
+  replicas: 1
+
+server:
+  replicas: 1
+  service:
+    type: ClusterIP
+
+repoServer:
+  replicas: 1
+
+applicationSet:
+  replicas: 1
+
+redis:
+  enabled: true
+
+dex:
+  enabled: false

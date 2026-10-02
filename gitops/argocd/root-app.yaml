@@ -1,0 +1,29 @@
+# The app-of-apps root Application. ArgoCD manages this one manually
+# (applied once by scripts/bootstrap-argocd.sh); it then recursively syncs
+# everything under gitops/apps, which in turn deploys sample-app/ (Phase 4).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Replace with your fork's URL before relying on sync — this repo isn't
+    # pushed to a remote yet (see PROGRESS.md).
+    repoURL: https://github.com/<your-github-username>/eks-gitops-platform.git
+    targetRevision: main
+    path: gitops/apps
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

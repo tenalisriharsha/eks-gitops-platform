@@ -85,11 +85,32 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
     valid JSON) for a data source's computed `.json` attribute, which broke
     `aws_iam_role.assume_role_policy` validation under `terraform test`
 
-- [ ] **Phase 3 — ArgoCD bootstrap**
-  - Helm-based ArgoCD install manifests/values under `gitops/argocd`
-  - App-of-apps root `Application` resource
-  - Bootstrap script/docs to install ArgoCD onto a fresh cluster and point it
-    at this repo
+- [x] **Phase 3 — ArgoCD bootstrap** *(Night 3)*
+  - `gitops/argocd/values.yaml` — Helm values for the `argo/argo-cd` chart
+    (pinned to version 10.9.6 / appVersion v3.5.3), trimmed to a single
+    replica per component for a dev-sized cluster
+  - Chose the official Helm chart over hand-rolled manifests or vendoring
+    `install.yaml`: it's maintained upstream, version-pinned, and
+    `helm template` gives a real offline rendering check without needing to
+    track ArgoCD's CRDs or raw manifests ourselves
+  - `gitops/argocd/root-app.yaml` — the app-of-apps root `Application`,
+    applied once by hand; it recursively syncs `gitops/apps` (empty until
+    Phase 4) with `prune` + `selfHeal` automation
+  - `scripts/bootstrap-argocd.sh` — installs the chart and applies the root
+    Application onto whatever cluster the current kubeconfig points at
+    (needs a real cluster — `aws eks update-kubeconfig` first)
+  - `scripts/validate-gitops.sh` + `scripts/check_manifest.rb` — offline
+    checks with no new dependencies: YAML syntax + required-field checks
+    via Ruby's bundled YAML (Psych), plus a `helm template` render of
+    `values.yaml` against the pinned chart (needs network to fetch the
+    chart, but no cluster or credentials)
+  - Considered `kubeconform`/`kustomize` for schema validation but neither
+    was available locally and installing them wasn't worth the dependency
+    for this repo's size; `kubectl --dry-run=client` turned out to still
+    require live API server discovery even with `--validate=false`, so it
+    couldn't fill this role either
+  - Wired into `make validate-gitops` / `make validate-all` alongside the
+    existing Terraform `make validate`
 
 - [ ] **Phase 4 — Sample multi-service app via GitOps**
   - `sample-app/`: frontend, backend, and cache services with manifests/Helm
@@ -106,29 +127,29 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
   - Final README pass, architecture diagram polish, screenshots if a UI
     component (e.g. ArgoCD UI) is actually stood up and captured
 
-## Resume point for Night 3
+## Resume point for Night 4
 
-Start at **Phase 3**. The VPC, EKS, and IRSA modules are all in place, wired
-together in `terraform/environments/dev`, and passing `terraform test` (30
-assertions across 4 test suites via `./scripts/validate.sh`). Next concrete
-steps:
+Start at **Phase 4**. Terraform (`./scripts/validate.sh`, 30 assertions) and
+the new GitOps checks (`./scripts/validate-gitops.sh`) both pass — `make
+validate-all` runs both. Next concrete steps:
 
-1. Under `gitops/argocd/`, add Helm-based ArgoCD install manifests/values
-   (or a `helm template` / Terraform `helm_release` approach — decide which
-   and document why in PROGRESS.md).
-2. Define the app-of-apps root `Application` resource (e.g.
-   `gitops/argocd/root-app.yaml`) pointing at `gitops/apps/` in this repo.
-3. Write a bootstrap script/doc (`scripts/bootstrap-argocd.sh` or similar)
-   that installs ArgoCD onto a cluster's kubeconfig and applies the root
-   Application — this is the first step that needs a real cluster
-   (`aws eks update-kubeconfig`), so note clearly in docs what's testable
-   locally (YAML validity, kustomize/helm template rendering) vs. what
-   needs a live EKS cluster from Phase 2's Terraform.
-4. Add whatever automated checks are feasible without a cluster (e.g.
-   `kubeconform`/`kustomize build` validation of the manifests) and wire
-   them into `scripts/validate.sh` or a new script, documenting the split
-   between "runs offline" and "needs a real cluster" in README.md.
-5. Keep the Terraform side green: `./scripts/validate.sh` must still pass
-   after any changes.
+1. Build `sample-app/`: a small multi-service app (frontend, backend, cache
+   is the PROGRESS.md plan — e.g. a static/simple frontend, a backend API,
+   and Redis for cache) with plain Kubernetes manifests or a Helm chart per
+   service. Keep it simple; the point is demonstrating the GitOps flow, not
+   building a real product.
+2. Add one child ArgoCD `Application` per service under `gitops/apps/`,
+   each pointing at its `sample-app/<service>` path, so the root app-of-apps
+   Application (`gitops/argocd/root-app.yaml`) picks them up automatically
+   via `directory.recurse: true`.
+3. Extend `scripts/check_manifest.rb`'s coverage (it already walks
+   `sample-app/`) and confirm `./scripts/validate-gitops.sh` catches
+   malformed manifests in the new service YAML.
+4. Document in `sample-app/README.md` how the services relate to each other
+   (ports, env vars, which IRSA role — `irsa_sample_app` from
+   `terraform/environments/dev/main.tf` — a service would use if it needed
+   AWS access) and what "synced" looks like once applied to a real cluster.
+5. Keep both validators green: `make validate-all` must still pass after any
+   changes.
 
 STATUS: IN_PROGRESS
