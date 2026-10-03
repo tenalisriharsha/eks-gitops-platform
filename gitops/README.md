@@ -17,5 +17,5 @@ cluster with `./scripts/validate-gitops.sh`.
 
 ## apps/
 
-Child `Application` resources, one per service in `sample-app/`. Empty until
-Phase 4 — see [PROGRESS.md](../PROGRESS.md).
+Child `Application` resources, one per service in `sample-app/` — see
+[`apps/README.md`](apps/README.md).

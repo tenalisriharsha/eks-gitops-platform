@@ -112,12 +112,38 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
   - Wired into `make validate-gitops` / `make validate-all` alongside the
     existing Terraform `make validate`
 
-- [ ] **Phase 4 — Sample multi-service app via GitOps**
-  - `sample-app/`: frontend, backend, and cache services with manifests/Helm
-    chart
-  - Child ArgoCD `Application` resources under `gitops/apps` referencing
-    `sample-app/`
-  - Verify sync from a clean cluster
+- [x] **Phase 4 — Sample multi-service app via GitOps** *(Night 4)*
+  - `sample-app/{frontend,backend,cache}/`: plain Kubernetes manifests (no
+    Helm, no build step) using public images — `nginxinc/nginx-unprivileged`
+    serving a ConfigMap-mounted page that reverse-proxies `/api/` to
+    `backend`, `hashicorp/http-echo` standing in for a real API, and
+    `redis:7-alpine` as cache. Chose plain manifests over a Helm chart per
+    service: three tiny services don't need templating, and it keeps
+    `check_manifest.rb`'s plain-YAML validation working unmodified
+  - `backend/serviceaccount.yaml` defines the `sample-app` ServiceAccount
+    (namespace `sample-app`) that `module.irsa_sample_app` already trusts —
+    the `eks.amazonaws.com/role-arn` annotation is a documented placeholder
+    (same pattern as `root-app.yaml`'s `repoURL`) pointing at the
+    `sample_app_irsa_role_arn` terraform output
+  - Three child ArgoCD `Application` resources under `gitops/apps/`
+    (`cache-app.yaml`, `backend-app.yaml`, `frontend-app.yaml`), each with
+    `syncOptions: [CreateNamespace=true]` so the shared `sample-app`
+    namespace needs no separate manifest; picked up automatically by the
+    root app-of-apps Application via `directory.recurse: true`
+  - Extended `scripts/check_manifest.rb` to also require `spec.selector` /
+    `spec.template.spec.containers` on `Deployment`s and non-empty
+    `spec.ports` on `Service`s, not just the existing Application checks
+  - Added `scripts/tests/check_manifest_test.rb` — minitest (bundled with
+    Ruby, no new dependency) black-box tests driving the real
+    `check_manifest.rb` CLI against fixture YAML (valid/invalid Deployments,
+    Services, Applications, multi-document streams, syntax errors) plus
+    regression tests running it against every real manifest in `sample-app/`
+    and `gitops/apps/`. Wired into `scripts/validate-gitops.sh` ahead of the
+    existing structural checks, so `make validate-all` now runs it too
+  - Verifying an actual sync still needs a real cluster (not available in
+    this environment) — the manifests, Applications, and their IRSA
+    cross-reference are all validated statically; a from-scratch cluster
+    sync is still untested against the real ArgoCD/EKS stack
 
 - [ ] **Phase 5 — Drift detection & rollback runbook**
   - Drift detection approach (ArgoCD auto-sync policy + notifications or a
@@ -127,29 +153,40 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
   - Final README pass, architecture diagram polish, screenshots if a UI
     component (e.g. ArgoCD UI) is actually stood up and captured
 
-## Resume point for Night 4
+## Resume point for Night 5
 
-Start at **Phase 4**. Terraform (`./scripts/validate.sh`, 30 assertions) and
-the new GitOps checks (`./scripts/validate-gitops.sh`) both pass — `make
-validate-all` runs both. Next concrete steps:
+Start at **Phase 5**. All validators are green: `./scripts/validate.sh` (30
+Terraform assertions), `./scripts/validate-gitops.sh` (11 Ruby unit tests in
+`scripts/tests/check_manifest_test.rb` + YAML/structural checks + `helm
+template`), and `make validate-all` runs both. Next concrete steps:
 
-1. Build `sample-app/`: a small multi-service app (frontend, backend, cache
-   is the PROGRESS.md plan — e.g. a static/simple frontend, a backend API,
-   and Redis for cache) with plain Kubernetes manifests or a Helm chart per
-   service. Keep it simple; the point is demonstrating the GitOps flow, not
-   building a real product.
-2. Add one child ArgoCD `Application` per service under `gitops/apps/`,
-   each pointing at its `sample-app/<service>` path, so the root app-of-apps
-   Application (`gitops/argocd/root-app.yaml`) picks them up automatically
-   via `directory.recurse: true`.
-3. Extend `scripts/check_manifest.rb`'s coverage (it already walks
-   `sample-app/`) and confirm `./scripts/validate-gitops.sh` catches
-   malformed manifests in the new service YAML.
-4. Document in `sample-app/README.md` how the services relate to each other
-   (ports, env vars, which IRSA role — `irsa_sample_app` from
-   `terraform/environments/dev/main.tf` — a service would use if it needed
-   AWS access) and what "synced" looks like once applied to a real cluster.
+1. Pick and document the drift-detection approach: ArgoCD's `automated` sync
+   with `selfHeal: true` (already set on every Application) already
+   self-heals most drift continuously — the remaining piece is a
+   *detection/visibility* story for drift that selfHeal doesn't catch
+   (e.g. a resource excluded from sync, or someone wanting to review before
+   it's reverted). A scheduled `argocd app diff` (or `argocd app list -o
+   wide` for OutOfSync status) run via cron/CI is the natural fit given this
+   repo has no live cluster to wire real notifications against.
+2. Write the rollback runbook in `docs/`: the primary path is `git revert`
+   on the commit that introduced the unwanted change + `argocd app sync` (or
+   wait for selfHeal), with a documented manual `kubectl` fallback for when
+   ArgoCD itself is unavailable. Walk through a concrete example (e.g.
+   reverting a bad `sample-app/backend` image tag) so it's a tested
+   procedure, not just prose.
+3. Final README pass across the repo (root, `gitops/`, `sample-app/`,
+   `docs/`) once Phase 5 content lands.
+4. This project needs real visual/CLI output for the required `docs/
+   screenshots/` preview section before it can be marked COMPLETE — this
+   repo has no live cluster available in this environment, so lean on
+   terminal-style screenshots of real, verified command output (e.g.
+   `./scripts/validate.sh`, `./scripts/validate-gitops.sh`,
+   `ruby scripts/tests/check_manifest_test.rb`, `helm template` against
+   `gitops/argocd/values.yaml`) rather than fabricating `kubectl`/`argocd`
+   output against a cluster that doesn't exist here.
 5. Keep both validators green: `make validate-all` must still pass after any
    changes.
+6. Once Phase 5, the README, and the screenshots are all in, write
+   `DAILY_REPORT.md` and only then set STATUS: COMPLETE.
 
 STATUS: IN_PROGRESS
