@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+      volumes:
+        - name: html
+          configMap:
+            name: frontend-html
+            items:
+              - key: index.html
+                path: index.html
+        - name: conf
+          configMap:
+            name: frontend-html
+            items:
+              - key: default.conf
+                path: default.conf

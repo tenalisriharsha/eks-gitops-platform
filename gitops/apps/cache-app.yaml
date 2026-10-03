@@ -1,0 +1,24 @@
+# Child Application for sample-app/cache. Picked up automatically by the
+# root app-of-apps Application (gitops/argocd/root-app.yaml), which
+# recursively syncs everything under gitops/apps.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-cache
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Replace with your fork's URL before relying on sync — see root-app.yaml.
+    repoURL: https://github.com/<your-github-username>/eks-gitops-platform.git
+    targetRevision: main
+    path: sample-app/cache
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
