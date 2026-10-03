@@ -27,6 +27,18 @@ ARGV.each do |path|
       missing << 'spec.destination' unless doc.dig('spec', 'destination')
     end
 
+    if doc['kind'] == 'Deployment'
+      missing << 'spec.selector' unless doc.dig('spec', 'selector')
+      missing << 'spec.template' unless doc.dig('spec', 'template')
+      containers = doc.dig('spec', 'template', 'spec', 'containers')
+      missing << 'spec.template.spec.containers' if containers.nil? || containers.empty?
+    end
+
+    if doc['kind'] == 'Service'
+      ports = doc.dig('spec', 'ports')
+      missing << 'spec.ports' if ports.nil? || ports.empty?
+    end
+
     unless missing.empty?
       warn "#{path}: missing #{missing.join(', ')}"
       status = 1
