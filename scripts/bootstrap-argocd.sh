@@ -33,7 +33,7 @@ ArgoCD is installed. Next steps:
       kubectl -n $namespace get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
   - Access the UI locally:
       kubectl -n $namespace port-forward svc/argocd-server 8080:443
-      open https://localhost:8080
+      http://localhost:8080  (plain HTTP: values.yaml sets server.insecure)
   - The Applications sync from github.com/tenalisriharsha/eks-gitops-platform.
     If you're running a fork, point repoURL in gitops/argocd/root-app.yaml
     and gitops/apps/*.yaml at it.
