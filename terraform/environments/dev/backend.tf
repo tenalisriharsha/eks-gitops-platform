@@ -1,6 +1,6 @@
 # Local state for now — no S3 bucket/DynamoDB table has been provisioned yet.
-# Once Phase 2 stands up real AWS infrastructure, switch this to an S3 backend
-# with state locking, e.g.:
+# Before running `terraform apply` against a real account (or sharing state
+# with anyone else), switch this to an S3 backend with state locking, e.g.:
 #
 # terraform {
 #   backend "s3" {

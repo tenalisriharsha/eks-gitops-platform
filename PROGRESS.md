@@ -156,9 +156,9 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
 ## Resume point for Night 5
 
 Start at **Phase 5**. All validators are green: `./scripts/validate.sh` (30
-Terraform assertions), `./scripts/validate-gitops.sh` (11 Ruby unit tests in
-`scripts/tests/check_manifest_test.rb` + YAML/structural checks + `helm
-template`), and `make validate-all` runs both. Next concrete steps:
+Terraform test runs), `./scripts/validate-gitops.sh` (19 Ruby unit tests in
+`scripts/tests/` + YAML/structural checks + `helm template`), and
+`make validate-all` runs both. Next concrete steps:
 
 1. Pick and document the drift-detection approach: ArgoCD's `automated` sync
    with `selfHeal: true` (already set on every Application) already

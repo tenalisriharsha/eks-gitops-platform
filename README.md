@@ -2,8 +2,10 @@
 
 Provisions a real AWS EKS cluster via Terraform — VPC, managed node groups,
 and IRSA — then layers ArgoCD on top in an app-of-apps pattern to
-GitOps-deploy a sample multi-service application, with drift detection and a
-documented rollback procedure.
+GitOps-deploy a sample multi-service application. Drift detection and a
+documented rollback procedure are planned for Phase 5 and not built yet
+(ArgoCD `selfHeal` is enabled on every Application, but there is no drift
+reporting or rollback runbook in the repo today).
 
 ## Project Status
 
@@ -32,7 +34,8 @@ scripts/                Local validation / bootstrap scripts
 ## Working locally
 
 Two independent layers, two validation scripts — neither needs real AWS
-credentials or a live cluster:
+credentials or a live cluster (both need network access on first run to
+download Terraform providers / the argo-cd chart):
 
 ```sh
 ./scripts/validate.sh         # terraform fmt/validate/test, mocked aws/tls providers
@@ -42,9 +45,10 @@ make validate-all              # both
 
 `validate.sh` runs `terraform fmt -check`, `terraform validate`, and
 `terraform test` for every Terraform module and the dev environment, against
-**mocked** `aws`/`tls` providers.
+**mocked** `aws`/`tls` providers. `terraform init` still downloads the real
+providers from registry.terraform.io, so this needs network access.
 
-`validate-gitops.sh` runs the `scripts/check_manifest.rb` unit tests, then
+`validate-gitops.sh` runs the Ruby unit tests in `scripts/tests/`, then
 checks YAML syntax and required fields on everything under `gitops/` and
 `sample-app/` (pure Ruby stdlib, no network), then `helm template`-renders
 `gitops/argocd/values.yaml` against the pinned argo-cd chart (needs network
