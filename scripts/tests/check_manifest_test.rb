@@ -175,6 +175,60 @@ class CheckManifestTest < Minitest::Test
     end
   end
 
+  def test_missing_file_reports_error_without_traceback
+    Dir.mktmpdir do |dir|
+      missing = File.join(dir, 'does-not-exist.yaml')
+      _out, err, status = run_checker(missing)
+      assert_equal 1, status.exitstatus, 'an unreadable path should fail with exit 1'
+      assert_match(/does-not-exist\.yaml: cannot read/, err)
+      refute_match(/\.rb:\d+:in /, err, 'should not dump a Ruby backtrace')
+    end
+  end
+
+  def test_missing_file_does_not_stop_remaining_files_being_checked
+    with_fixture(<<~YAML) do |path|
+      apiVersion: v1
+      kind: Service
+      metadata: {}
+    YAML
+      _out, err, status = run_checker('/nonexistent/first.yaml', path)
+      refute status.success?
+      assert_match(/first\.yaml: cannot read/, err)
+      assert_match(/fixture\.yaml: missing metadata\.name/, err)
+    end
+  end
+
+  def test_scalar_metadata_reports_missing_name_without_traceback
+    with_fixture(<<~YAML) do |path|
+      apiVersion: v1
+      kind: Service
+      metadata: backend
+      spec:
+        ports:
+          - port: 8080
+    YAML
+      _out, err, status = run_checker(path)
+      assert_equal 1, status.exitstatus
+      assert_match(/missing metadata\.name/, err)
+      refute_match(/\.rb:\d+:in /, err, 'should not dump a Ruby backtrace')
+    end
+  end
+
+  def test_list_spec_reports_missing_fields_without_traceback
+    with_fixture(<<~YAML) do |path|
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: backend
+      spec: []
+    YAML
+      _out, err, status = run_checker(path)
+      assert_equal 1, status.exitstatus
+      assert_match(/missing spec\.selector, spec\.template, spec\.template\.spec\.containers/, err)
+      refute_match(/\.rb:\d+:in /, err, 'should not dump a Ruby backtrace')
+    end
+  end
+
   def test_real_sample_app_manifests_pass
     manifests = Dir.glob(File.join(REPO_ROOT, 'sample-app', '**', '*.yaml'))
     refute_empty manifests, 'expected sample-app manifests to exist by Phase 4'
