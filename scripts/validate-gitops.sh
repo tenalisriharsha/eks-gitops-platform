@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Validates the GitOps manifests without needing a live cluster:
-#   1. Unit tests for scripts/check_manifest.rb itself (scripts/tests/, pure
-#      Ruby stdlib + bundled minitest — no network, no cluster).
+#   1. Unit tests for scripts/check_manifest.rb and the helm repo setup in
+#      this script and bootstrap-argocd.sh (scripts/tests/, pure Ruby stdlib +
+#      bundled minitest — no network, no cluster).
 #   2. YAML syntax + required-field checks (scripts/check_manifest.rb, pure
 #      Ruby stdlib — no network, no cluster).
 #   3. `helm template` rendering of gitops/argocd/values.yaml against the
@@ -12,8 +13,9 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 chart_version="10.9.6"
 
-echo "==> check_manifest.rb unit tests"
+echo "==> scripts/tests unit tests"
 ruby "$repo_root/scripts/tests/check_manifest_test.rb"
+ruby "$repo_root/scripts/tests/helm_repo_setup_test.rb"
 
 echo "==> YAML syntax + structural checks"
 manifests=$(find "$repo_root/gitops" "$repo_root/sample-app" -type f \( -name '*.yaml' -o -name '*.yml' \))
@@ -23,7 +25,7 @@ if [ -n "$manifests" ]; then
 fi
 
 echo "==> helm template: gitops/argocd/values.yaml against argo-cd $chart_version"
-helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
+helm repo add --force-update argo https://argoproj.github.io/argo-helm >/dev/null
 helm repo update argo >/dev/null
 helm template argocd argo/argo-cd \
   --version "$chart_version" \

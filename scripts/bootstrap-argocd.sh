@@ -13,7 +13,7 @@ echo "==> Checking cluster connectivity"
 kubectl cluster-info >/dev/null
 
 echo "==> Adding/updating the argo-helm repo"
-helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
+helm repo add --force-update argo https://argoproj.github.io/argo-helm >/dev/null
 helm repo update argo >/dev/null
 
 echo "==> Installing ArgoCD ($chart_version) into namespace '$namespace'"
