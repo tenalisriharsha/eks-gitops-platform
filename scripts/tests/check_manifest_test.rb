@@ -7,6 +7,7 @@ require 'minitest/autorun'
 require 'open3'
 require 'tmpdir'
 require 'fileutils'
+require 'yaml'
 
 CHECKER = File.expand_path('../check_manifest.rb', __dir__)
 REPO_ROOT = File.expand_path('../..', __dir__)
@@ -234,6 +235,18 @@ class CheckManifestTest < Minitest::Test
     refute_empty manifests, 'expected sample-app manifests to exist by Phase 4'
     _out, err, status = run_checker(*manifests)
     assert status.success?, "expected all sample-app manifests to pass, got: #{err}"
+  end
+
+  def test_real_applications_point_at_a_real_repo
+    apps = Dir.glob(File.join(REPO_ROOT, 'gitops', '**', '*.yaml')).flat_map do |path|
+      YAML.load_stream(File.read(path)).select { |doc| doc.is_a?(Hash) && doc['kind'] == 'Application' }
+    end
+    refute_empty apps
+    apps.each do |app|
+      url = app.dig('spec', 'source', 'repoURL').to_s
+      assert_match(%r{\Ahttps://github\.com/[\w.-]+/[\w.-]+\.git\z}, url,
+                   "#{app.dig('metadata', 'name')}: repoURL must be a real, syncable git URL")
+    end
   end
 
   def test_real_gitops_apps_manifests_pass

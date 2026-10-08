@@ -34,6 +34,7 @@ ArgoCD is installed. Next steps:
   - Access the UI locally:
       kubectl -n $namespace port-forward svc/argocd-server 8080:443
       open https://localhost:8080
-  - gitops/argocd/root-app.yaml's repoURL is still a placeholder — point it
-    at your fork before relying on sync.
+  - The Applications sync from github.com/tenalisriharsha/eks-gitops-platform.
+    If you're running a fork, point repoURL in gitops/argocd/root-app.yaml
+    and gitops/apps/*.yaml at it.
 EOF
