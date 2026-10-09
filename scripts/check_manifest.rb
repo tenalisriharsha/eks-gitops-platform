@@ -4,6 +4,12 @@
 # No cluster, network, or gems required — uses Ruby's bundled YAML (Psych).
 require 'yaml'
 
+# Like Hash#dig, but returns nil instead of raising when an intermediate value
+# is a scalar or list (e.g. `metadata: foo` or `spec: []`).
+def field(doc, *keys)
+  keys.reduce(doc) { |node, key| node.is_a?(Hash) ? node[key] : nil }
+end
+
 status = 0
 
 ARGV.each do |path|
@@ -13,6 +19,10 @@ ARGV.each do |path|
     warn "#{path}: YAML syntax error: #{e.message}"
     status = 1
     next
+  rescue SystemCallError => e
+    warn "#{path}: cannot read: #{e.message}"
+    status = 1
+    next
   end
 
   docs.compact.each do |doc|
@@ -20,23 +30,23 @@ ARGV.each do |path|
     next unless doc.key?('apiVersion') && doc.key?('kind')
 
     missing = []
-    missing << 'metadata.name' unless doc.dig('metadata', 'name')
+    missing << 'metadata.name' unless field(doc, 'metadata', 'name')
 
     if doc['kind'] == 'Application' && doc['apiVersion'].to_s.start_with?('argoproj.io')
-      missing << 'spec.source' unless doc.dig('spec', 'source')
-      missing << 'spec.destination' unless doc.dig('spec', 'destination')
+      missing << 'spec.source' unless field(doc, 'spec', 'source')
+      missing << 'spec.destination' unless field(doc, 'spec', 'destination')
     end
 
     if doc['kind'] == 'Deployment'
-      missing << 'spec.selector' unless doc.dig('spec', 'selector')
-      missing << 'spec.template' unless doc.dig('spec', 'template')
-      containers = doc.dig('spec', 'template', 'spec', 'containers')
-      missing << 'spec.template.spec.containers' if containers.nil? || containers.empty?
+      missing << 'spec.selector' unless field(doc, 'spec', 'selector')
+      missing << 'spec.template' unless field(doc, 'spec', 'template')
+      containers = field(doc, 'spec', 'template', 'spec', 'containers')
+      missing << 'spec.template.spec.containers' if !containers.is_a?(Array) || containers.empty?
     end
 
     if doc['kind'] == 'Service'
-      ports = doc.dig('spec', 'ports')
-      missing << 'spec.ports' if ports.nil? || ports.empty?
+      ports = field(doc, 'spec', 'ports')
+      missing << 'spec.ports' if !ports.is_a?(Array) || ports.empty?
     end
 
     unless missing.empty?

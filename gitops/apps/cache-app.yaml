@@ -9,8 +9,8 @@ metadata:
 spec:
   project: default
   source:
-    # Replace with your fork's URL before relying on sync — see root-app.yaml.
-    repoURL: https://github.com/<your-github-username>/eks-gitops-platform.git
+    # If you fork this repo, point this at your fork — see root-app.yaml.
+    repoURL: https://github.com/tenalisriharsha/eks-gitops-platform.git
     targetRevision: main
     path: sample-app/cache
   destination:

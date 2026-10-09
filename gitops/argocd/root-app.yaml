@@ -11,9 +11,9 @@ metadata:
 spec:
   project: default
   source:
-    # Replace with your fork's URL before relying on sync — this repo isn't
-    # pushed to a remote yet (see PROGRESS.md).
-    repoURL: https://github.com/<your-github-username>/eks-gitops-platform.git
+    # If you fork this repo, point this (and every gitops/apps/*.yaml) at
+    # your fork so ArgoCD syncs your changes rather than upstream's.
+    repoURL: https://github.com/tenalisriharsha/eks-gitops-platform.git
     targetRevision: main
     path: gitops/apps
     directory:

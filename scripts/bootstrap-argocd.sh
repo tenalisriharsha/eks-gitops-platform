@@ -13,7 +13,7 @@ echo "==> Checking cluster connectivity"
 kubectl cluster-info >/dev/null
 
 echo "==> Adding/updating the argo-helm repo"
-helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
+helm repo add --force-update argo https://argoproj.github.io/argo-helm >/dev/null
 helm repo update argo >/dev/null
 
 echo "==> Installing ArgoCD ($chart_version) into namespace '$namespace'"
@@ -33,7 +33,8 @@ ArgoCD is installed. Next steps:
       kubectl -n $namespace get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
   - Access the UI locally:
       kubectl -n $namespace port-forward svc/argocd-server 8080:443
-      open https://localhost:8080
-  - gitops/argocd/root-app.yaml's repoURL is still a placeholder — point it
-    at your fork before relying on sync.
+      http://localhost:8080  (plain HTTP: values.yaml sets server.insecure)
+  - The Applications sync from github.com/tenalisriharsha/eks-gitops-platform.
+    If you're running a fork, point repoURL in gitops/argocd/root-app.yaml
+    and gitops/apps/*.yaml at it.
 EOF
