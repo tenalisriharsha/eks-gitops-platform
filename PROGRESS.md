@@ -5,8 +5,9 @@
 `eks-gitops-platform` provisions a real AWS EKS cluster via Terraform — VPC,
 managed node groups, and IRSA (IAM Roles for Service Accounts) — then layers
 ArgoCD on top in an app-of-apps pattern to GitOps-deploy a sample multi-service
-application. The platform includes drift detection and a documented rollback
-procedure, so it behaves like something you'd actually run, not just a demo.
+application. Drift detection and a documented rollback procedure are the goal
+of Phase 5 and are not built yet; the aim is something you'd actually run,
+not just a demo.
 
 ## Architecture
 
@@ -51,10 +52,11 @@ procedure, so it behaves like something you'd actually run, not just a demo.
 Terraform provisions the infrastructure layer (VPC → EKS → IRSA). Once the
 cluster exists, a one-time bootstrap installs ArgoCD and a single root
 "app-of-apps" Application, which then owns everything below it declaratively
-from the `gitops/` directory in this repo. Drift detection relies on ArgoCD's
-continuous diff between desired (git) and live (cluster) state, surfaced via
-`argocd app diff` / OutOfSync status, with a documented manual rollback
-procedure (`git revert` + resync) for when auto-sync isn't enough.
+from the `gitops/` directory in this repo. Planned for Phase 5 (not built
+yet): drift detection based on ArgoCD's continuous diff between desired
+(git) and live (cluster) state, surfaced via `argocd app diff` / OutOfSync
+status, and a documented manual rollback procedure (`git revert` + resync)
+for when auto-sync isn't enough.
 
 ## Phased Build Plan
 
@@ -145,6 +147,15 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
     cross-reference are all validated statically; a from-scratch cluster
     sync is still untested against the real ArgoCD/EKS stack
 
+- [x] **Hardening — EKS API endpoint exposure**
+  - The eks module rejects a public API endpoint open to `0.0.0.0/0` (an
+    empty `endpoint_public_access_cidrs` list or any `/0` entry) unless
+    `allow_open_public_endpoint = true`; the dev environment sets that
+    opt-in by default and warns on every plan. See
+    [docs/cluster-access.md](docs/cluster-access.md)
+  - Other review findings kept as design decisions are listed in
+    [docs/README.md](docs/README.md#open-design-decisions)
+
 - [ ] **Phase 5 — Drift detection & rollback runbook**
   - Drift detection approach (ArgoCD auto-sync policy + notifications or a
     scheduled diff check)
@@ -155,7 +166,7 @@ procedure (`git revert` + resync) for when auto-sync isn't enough.
 
 ## Resume point for Night 5
 
-Start at **Phase 5**. All validators are green: `./scripts/validate.sh` (30
+Start at **Phase 5**. All validators are green: `./scripts/validate.sh` (43
 Terraform test runs), `./scripts/validate-gitops.sh` (19 Ruby unit tests in
 `scripts/tests/` + YAML/structural checks + `helm template`), and
 `make validate-all` runs both. Next concrete steps:

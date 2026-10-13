@@ -13,6 +13,11 @@ output "cluster_endpoint" {
   value       = aws_eks_cluster.this.endpoint
 }
 
+output "cluster_endpoint_public_access_cidrs" {
+  description = "CIDR blocks allowed to reach the public API server endpoint, or null when the public endpoint is disabled."
+  value       = local.public_access_cidrs
+}
+
 output "cluster_certificate_authority_data" {
   description = "Base64-encoded certificate authority data for the cluster, for kubeconfig generation."
   value       = aws_eks_cluster.this.certificate_authority[0].data
