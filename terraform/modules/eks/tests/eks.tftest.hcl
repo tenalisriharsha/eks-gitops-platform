@@ -7,9 +7,10 @@ mock_provider "aws" {}
 mock_provider "tls" {}
 
 variables {
-  cluster_name       = "test-cluster"
-  subnet_ids         = ["subnet-public-a", "subnet-public-b", "subnet-private-a", "subnet-private-b"]
-  private_subnet_ids = ["subnet-private-a", "subnet-private-b"]
+  cluster_name                 = "test-cluster"
+  subnet_ids                   = ["subnet-public-a", "subnet-public-b", "subnet-private-a", "subnet-private-b"]
+  private_subnet_ids           = ["subnet-private-a", "subnet-private-b"]
+  endpoint_public_access_cidrs = ["203.0.113.10/32"]
 }
 
 run "creates_cluster_and_node_group" {
@@ -126,3 +127,4 @@ run "rejects_invalid_capacity_type" {
     var.node_capacity_type,
   ]
 }
+

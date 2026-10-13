@@ -41,9 +41,26 @@ variable "endpoint_private_access" {
 }
 
 variable "endpoint_public_access" {
-  description = "Whether the EKS cluster API server endpoint is reachable from outside the VPC."
+  description = "Whether the EKS cluster API server endpoint is reachable from outside the VPC. When true, endpoint_public_access_cidrs must list the allowed source ranges, unless allow_open_public_endpoint is set."
   type        = bool
   default     = true
+}
+
+variable "endpoint_public_access_cidrs" {
+  description = "CIDR blocks allowed to reach the public API server endpoint (e.g. your office or VPN egress, as x.x.x.x/32). Leave empty when endpoint_public_access is false. Any /0 range (0.0.0.0/0, ::/0) is rejected unless allow_open_public_endpoint is true."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for c in var.endpoint_public_access_cidrs : can(cidrhost(c, 0))])
+    error_message = "endpoint_public_access_cidrs must contain only valid CIDR blocks, e.g. 203.0.113.10/32."
+  }
+}
+
+variable "allow_open_public_endpoint" {
+  description = "Explicit opt-in to expose the public API server endpoint to the whole internet (0.0.0.0/0). Required when endpoint_public_access is true and endpoint_public_access_cidrs is empty or contains a /0 range. Access is still gated by IAM authentication, but the endpoint becomes reachable for scanning and credential attacks from anywhere."
+  type        = bool
+  default     = false
 }
 
 variable "node_instance_types" {

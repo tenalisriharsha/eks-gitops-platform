@@ -21,6 +21,9 @@ module "eks" {
   node_desired_size   = var.node_desired_size
   node_min_size       = var.node_min_size
   node_max_size       = var.node_max_size
+
+  # Keep the existing open endpoint for now; made configurable next.
+  allow_open_public_endpoint = true
 }
 
 # Example IRSA role for the sample app's service account (Phase 4 wires the

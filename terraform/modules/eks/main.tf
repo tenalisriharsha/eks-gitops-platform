@@ -1,5 +1,19 @@
 locals {
   node_sizes_valid = var.node_min_size <= var.node_desired_size && var.node_desired_size <= var.node_max_size
+
+  # An empty public_access_cidrs list means 0.0.0.0/0 to the EKS API, so it
+  # counts as open just like an explicit /0 entry.
+  public_cidrs_open = length(var.endpoint_public_access_cidrs) == 0 || anytrue([
+    for c in var.endpoint_public_access_cidrs : endswith(c, "/0")
+  ])
+
+  # Only send public_access_cidrs when the public endpoint is enabled. The
+  # opt-in with no list writes 0.0.0.0/0 explicitly, which is the value AWS
+  # already stores for clusters created without a list, so existing clusters
+  # see no diff.
+  public_access_cidrs = !var.endpoint_public_access ? null : (
+    length(var.endpoint_public_access_cidrs) > 0 ? var.endpoint_public_access_cidrs : ["0.0.0.0/0"]
+  )
 }
 
 resource "terraform_data" "validate_node_sizes" {
@@ -38,11 +52,29 @@ resource "aws_eks_cluster" "this" {
     subnet_ids              = var.subnet_ids
     endpoint_private_access = var.endpoint_private_access
     endpoint_public_access  = var.endpoint_public_access
+    public_access_cidrs     = local.public_access_cidrs
   }
 
   tags = var.tags
 
   depends_on = [aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy]
+
+  lifecycle {
+    precondition {
+      condition     = var.endpoint_public_access || var.endpoint_private_access
+      error_message = "At least one of endpoint_public_access or endpoint_private_access must be true, or nothing can reach the API server."
+    }
+
+    precondition {
+      condition     = !(var.endpoint_public_access && local.public_cidrs_open) || var.allow_open_public_endpoint
+      error_message = "The public EKS API endpoint would be open to the whole internet (endpoint_public_access_cidrs is empty or contains a /0 range). Set endpoint_public_access_cidrs to the ranges that need access, set endpoint_public_access = false and use the private endpoint, or set allow_open_public_endpoint = true to accept an open endpoint explicitly."
+    }
+
+    precondition {
+      condition     = var.endpoint_public_access || length(var.endpoint_public_access_cidrs) == 0
+      error_message = "endpoint_public_access_cidrs is set but endpoint_public_access is false, so the list would be ignored. Remove the CIDRs or enable the public endpoint."
+    }
+  }
 }
 
 resource "aws_iam_role" "node" {
