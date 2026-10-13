@@ -128,3 +128,140 @@ run "rejects_invalid_capacity_type" {
   ]
 }
 
+# --- API endpoint exposure ---------------------------------------------------
+
+run "rejects_open_public_endpoint_by_default" {
+  command = plan
+
+  # No CIDR list means AWS would allow 0.0.0.0/0.
+  variables {
+    endpoint_public_access_cidrs = []
+  }
+
+  expect_failures = [
+    aws_eks_cluster.this,
+  ]
+}
+
+run "rejects_explicit_ipv4_any_cidr" {
+  command = plan
+
+  variables {
+    endpoint_public_access_cidrs = ["203.0.113.10/32", "0.0.0.0/0"]
+  }
+
+  expect_failures = [
+    aws_eks_cluster.this,
+  ]
+}
+
+run "rejects_explicit_ipv6_any_cidr" {
+  command = plan
+
+  variables {
+    endpoint_public_access_cidrs = ["::/0"]
+  }
+
+  expect_failures = [
+    aws_eks_cluster.this,
+  ]
+}
+
+run "passes_restricted_cidrs_through" {
+  command = plan
+
+  variables {
+    endpoint_public_access_cidrs = ["203.0.113.10/32", "198.51.100.0/24"]
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.vpc_config[0].endpoint_public_access == true
+    error_message = "public endpoint should stay enabled when a CIDR list is given"
+  }
+
+  assert {
+    condition     = toset(aws_eks_cluster.this.vpc_config[0].public_access_cidrs) == toset(["203.0.113.10/32", "198.51.100.0/24"])
+    error_message = "public_access_cidrs on the cluster must be exactly endpoint_public_access_cidrs"
+  }
+
+  assert {
+    condition     = toset(output.cluster_endpoint_public_access_cidrs) == toset(["203.0.113.10/32", "198.51.100.0/24"])
+    error_message = "cluster_endpoint_public_access_cidrs output must report the allowed CIDRs"
+  }
+}
+
+run "open_endpoint_allowed_with_explicit_opt_in" {
+  command = plan
+
+  variables {
+    endpoint_public_access_cidrs = []
+    allow_open_public_endpoint   = true
+  }
+
+  assert {
+    condition     = toset(aws_eks_cluster.this.vpc_config[0].public_access_cidrs) == toset(["0.0.0.0/0"])
+    error_message = "the opt-in with no CIDR list should write 0.0.0.0/0 explicitly"
+  }
+}
+
+run "private_only_endpoint_needs_no_cidrs" {
+  command = plan
+
+  variables {
+    endpoint_public_access       = false
+    endpoint_public_access_cidrs = []
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.vpc_config[0].endpoint_public_access == false
+    error_message = "public endpoint should be disabled"
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.vpc_config[0].endpoint_private_access == true
+    error_message = "private endpoint should stay enabled"
+  }
+
+  assert {
+    condition     = output.cluster_endpoint_public_access_cidrs == null
+    error_message = "no public CIDRs should be sent when the public endpoint is disabled"
+  }
+}
+
+run "rejects_cidrs_with_public_endpoint_disabled" {
+  command = plan
+
+  variables {
+    endpoint_public_access = false
+  }
+
+  expect_failures = [
+    aws_eks_cluster.this,
+  ]
+}
+
+run "rejects_both_endpoints_disabled" {
+  command = plan
+
+  variables {
+    endpoint_public_access       = false
+    endpoint_private_access      = false
+    endpoint_public_access_cidrs = []
+  }
+
+  expect_failures = [
+    aws_eks_cluster.this,
+  ]
+}
+
+run "rejects_malformed_cidr" {
+  command = plan
+
+  variables {
+    endpoint_public_access_cidrs = ["203.0.113.10"]
+  }
+
+  expect_failures = [
+    var.endpoint_public_access_cidrs,
+  ]
+}
