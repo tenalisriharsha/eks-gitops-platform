@@ -54,6 +54,18 @@ checks YAML syntax and required fields on everything under `gitops/` and
 `gitops/argocd/values.yaml` against the pinned argo-cd chart (needs network
 to fetch the chart, but no cluster).
 
+## Cluster API access
+
+The EKS module refuses to create a public API endpoint open to `0.0.0.0/0`
+unless you opt in with `allow_open_public_endpoint = true`. Pass
+`endpoint_public_access_cidrs` (e.g. your egress IP as `/32`) or disable the
+public endpoint and reach it privately. The dev environment keeps the
+historical open endpoint as an explicit, commented opt-in and warns on every
+plan; copy `terraform/environments/dev/terraform.tfvars.example` to lock it
+down. Details and tradeoffs: [docs/cluster-access.md](docs/cluster-access.md).
+
+## Deploying
+
 Actually installing ArgoCD needs a real EKS cluster — provision one with the
 Terraform in `terraform/environments/dev`, point kubectl at it
 (`aws eks update-kubeconfig --name <cluster_name>`), then run
