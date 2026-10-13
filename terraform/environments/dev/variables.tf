@@ -69,3 +69,26 @@ variable "node_max_size" {
   type        = number
   default     = 3
 }
+
+variable "endpoint_public_access" {
+  description = "Whether the EKS API server endpoint is reachable from outside the VPC. Set to false to use only the private endpoint (reach it from inside the VPC, e.g. through an SSM-managed instance)."
+  type        = bool
+  default     = true
+}
+
+variable "endpoint_public_access_cidrs" {
+  description = "CIDR blocks allowed to reach the public EKS API endpoint, e.g. [\"203.0.113.10/32\"] for your own egress IP. Leave empty only together with allow_open_public_endpoint = true or endpoint_public_access = false."
+  type        = list(string)
+  default     = []
+}
+
+# OPT-IN, NOT A SAFE DEFAULT: dev keeps the API endpoint reachable from
+# 0.0.0.0/0 so an existing checkout plans with no change and a fresh clone
+# works without knowing your IP. Every plan prints a warning while this is
+# on. To lock it down, set endpoint_public_access_cidrs to your egress IP(s)
+# and this to false (see terraform.tfvars.example and docs/cluster-access.md).
+variable "allow_open_public_endpoint" {
+  description = "Explicitly allow the public EKS API endpoint to be open to 0.0.0.0/0. See the comment above this variable."
+  type        = bool
+  default     = true
+}

@@ -1,6 +1,18 @@
 aws_region   = "us-east-1"
 cluster_name = "eks-gitops-dev"
 
+# EKS API endpoint access. Recommended: allow only your own egress IP(s)
+# (e.g. the output of `curl -s https://checkip.amazonaws.com`, as /32) and
+# turn off the dev-only open-endpoint opt-in.
+endpoint_public_access_cidrs = ["203.0.113.10/32"]
+allow_open_public_endpoint   = false
+
+# Or go private-only and reach the API from inside the VPC
+# (see docs/cluster-access.md):
+# endpoint_public_access       = false
+# endpoint_public_access_cidrs = []
+# allow_open_public_endpoint   = false
+
 # azs, subnet CIDRs, single_nat_gateway, kubernetes_version, and node sizing
 # all have sensible defaults in variables.tf — override here only if you need
 # something different.

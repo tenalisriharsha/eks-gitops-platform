@@ -32,3 +32,8 @@ output "sample_app_irsa_role_arn" {
   description = "ARN of the IAM role for the sample app's Kubernetes service account."
   value       = module.irsa_sample_app.role_arn
 }
+
+output "cluster_endpoint_public_access_cidrs" {
+  description = "CIDR blocks allowed to reach the public EKS API endpoint (null when the public endpoint is disabled)."
+  value       = module.eks.cluster_endpoint_public_access_cidrs
+}
