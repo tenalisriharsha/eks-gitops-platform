@@ -32,6 +32,35 @@ run "creates_cluster_and_node_group" {
   }
 }
 
+run "default_kubernetes_version_is_in_standard_support" {
+  command = plan
+
+  # EKS extended support costs extra and ends 26 months after a version's
+  # release. Bump this alongside the variable default, not independently.
+  assert {
+    condition     = aws_eks_cluster.this.version == "1.34"
+    error_message = "default kubernetes_version drifted from the expected supported version; update this test and docs/README.md together with the variable default"
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.version != "1.31"
+    error_message = "kubernetes_version must not default back to 1.31, whose EKS extended support ends 2026-11-26"
+  }
+}
+
+run "kubernetes_version_passes_through" {
+  command = plan
+
+  variables {
+    kubernetes_version = "1.32"
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.version == "1.32"
+    error_message = "cluster version should match the configured kubernetes_version"
+  }
+}
+
 run "node_group_scaling_defaults" {
   command = plan
 
