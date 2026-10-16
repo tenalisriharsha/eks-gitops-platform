@@ -41,9 +41,9 @@ variable "single_nat_gateway" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version for the EKS control plane."
+  description = "Kubernetes version for the EKS control plane. Keep this on a version in EKS standard support; see docs/README.md for the upgrade path when it drifts."
   type        = string
-  default     = "1.31"
+  default     = "1.34"
 }
 
 variable "node_instance_types" {
