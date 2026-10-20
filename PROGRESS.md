@@ -201,3 +201,11 @@ Terraform test runs), `./scripts/validate-gitops.sh` (19 Ruby unit tests in
    `DAILY_REPORT.md` and only then set STATUS: COMPLETE.
 
 STATUS: IN_PROGRESS
+
+## Build history (moved from README)
+
+This project is being built in public, one phase at a time. See
+[PROGRESS.md](PROGRESS.md) for the full architecture, the phased build plan,
+and exactly what's done vs. what's next.
+
+**Current status: IN_PROGRESS — Phase 4 (sample app via GitOps) complete.**

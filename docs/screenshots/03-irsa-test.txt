@@ -1,0 +1,13 @@
+$ terraform -chdir=terraform/modules/irsa test -no-color
+tests/irsa.tftest.hcl... in progress
+  run "creates_role_with_requested_name"... pass
+  run "trust_policy_scopes_to_federated_oidc_provider"... pass
+  run "trust_policy_scopes_to_exact_service_account"... pass
+  run "attaches_requested_managed_policies"... pass
+  run "no_attachments_when_policy_arns_empty"... pass
+  run "rejects_empty_role_name"... pass
+  run "rejects_overly_long_role_name"... pass
+tests/irsa.tftest.hcl... tearing down
+tests/irsa.tftest.hcl... pass
+
+Success! 7 passed, 0 failed.

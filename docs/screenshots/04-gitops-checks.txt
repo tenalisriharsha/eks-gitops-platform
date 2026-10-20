@@ -1,0 +1,23 @@
+$ ./scripts/validate-gitops.sh
+==> scripts/tests unit tests
+Run options: --seed 51318
+
+# Running:
+
+................
+
+Finished in 0.650574s, 24.5937 runs/s, 90.6891 assertions/s.
+
+16 runs, 59 assertions, 0 failures, 0 errors, 0 skips
+Run options: --seed 486
+
+# Running:
+
+...
+
+Finished in 0.513106s, 5.8467 runs/s, 25.3359 assertions/s.
+
+3 runs, 13 assertions, 0 failures, 0 errors, 0 skips
+==> YAML syntax + structural checks
+==> helm template: gitops/argocd/values.yaml against argo-cd 10.9.6
+All GitOps checks passed.
