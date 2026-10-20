@@ -1,0 +1,17 @@
+$ TF_CLI_ARGS=-no-color ./scripts/validate.sh 2>&1 | tail -16
+  run "plans_with_defaults"... pass
+  run "cluster_name_propagates_to_vpc_tagging"... pass
+  run "eks_node_group_wired_to_private_subnets"... pass
+  run "irsa_role_wired_to_eks_oidc_provider"... pass
+  run "restricted_cidrs_reach_the_cluster"... pass
+  run "private_only_endpoint"... pass
+tests/dev.tftest.hcl... tearing down
+tests/dev.tftest.hcl... pass
+tests/endpoint_defaults.tftest.hcl... in progress
+  run "defaults_keep_open_endpoint_via_opt_in_and_warn"... pass
+  run "explicit_any_cidr_with_opt_in_also_warns"... pass
+tests/endpoint_defaults.tftest.hcl... tearing down
+tests/endpoint_defaults.tftest.hcl... pass
+
+Success! 8 passed, 0 failed.
+All checks passed.
