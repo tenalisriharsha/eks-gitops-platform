@@ -5,9 +5,8 @@
 `eks-gitops-platform` provisions a real AWS EKS cluster via Terraform — VPC,
 managed node groups, and IRSA (IAM Roles for Service Accounts) — then layers
 ArgoCD on top in an app-of-apps pattern to GitOps-deploy a sample multi-service
-application. Drift detection and a documented rollback procedure are the goal
-of Phase 5 and are not built yet; the aim is something you'd actually run,
-not just a demo.
+application, with drift visibility and a documented rollback procedure;
+the aim is something you'd actually run, not just a demo.
 
 ## Architecture
 
@@ -52,11 +51,13 @@ not just a demo.
 Terraform provisions the infrastructure layer (VPC → EKS → IRSA). Once the
 cluster exists, a one-time bootstrap installs ArgoCD and a single root
 "app-of-apps" Application, which then owns everything below it declaratively
-from the `gitops/` directory in this repo. Planned for Phase 5 (not built
-yet): drift detection based on ArgoCD's continuous diff between desired
-(git) and live (cluster) state, surfaced via `argocd app diff` / OutOfSync
-status, and a documented manual rollback procedure (`git revert` + resync)
-for when auto-sync isn't enough.
+from the `gitops/` directory in this repo. `selfHeal: true` on every
+Application corrects most drift automatically; `scripts/check-drift.sh`
+adds scheduled visibility on top (sync/health status, surfaced via `argocd
+app diff` / OutOfSync status — see `docs/drift-detection.md`), and
+`docs/rollback-runbook.md` documents the manual rollback procedure
+(`git revert` + resync, plus a `kubectl` fallback) for when auto-sync isn't
+enough.
 
 ## Phased Build Plan
 
@@ -156,56 +157,59 @@ for when auto-sync isn't enough.
   - Other review findings kept as design decisions are listed in
     [docs/README.md](docs/README.md#open-design-decisions)
 
-- [ ] **Phase 5 — Drift detection & rollback runbook**
-  - Drift detection approach (ArgoCD auto-sync policy + notifications or a
-    scheduled diff check)
-  - Documented, tested rollback procedure (git revert + resync, plus manual
-    `kubectl` fallback)
-  - Final README pass, architecture diagram polish, screenshots if a UI
-    component (e.g. ArgoCD UI) is actually stood up and captured
+- [x] **Phase 5 — Drift detection & rollback runbook** *(Night 5)*
+  - `docs/drift-detection.md`: documents what ArgoCD's `automated` sync with
+    `selfHeal: true` (already set on every Application) already corrects
+    automatically, and what it doesn't give you — visibility. A resource
+    excluded from sync, or a human wanting a record that a revert happened,
+    has no signal from selfHeal alone.
+  - `scripts/check-drift.sh`: wraps `argocd app list -o json`, prints a
+    one-line Sync/Health status per Application, exits non-zero if anything
+    isn't `Synced`/`Healthy`, and takes an optional `--diff` to run
+    `argocd app diff` on whatever's out of sync. Meant for cron or a
+    scheduled CI job against a real cluster — documented but not wired into
+    `.github/workflows/validate.yml`, since that would need real cluster
+    credentials as GitHub secrets that only exist once this is applied to
+    an actual AWS account (see `docs/drift-detection.md`'s scheduling
+    section for the GitHub Actions shape once they do).
+  - `scripts/tests/check_drift_test.rb`: 7 minitest cases driving the real
+    `check-drift.sh` against a stub `argocd` binary on `PATH` (synced/
+    healthy, out-of-sync, unhealthy, `--diff`, missing CLI, `--help`,
+    unknown flag) — same no-network/no-cluster pattern as
+    `helm_repo_setup_test.rb`. Wired into `scripts/validate-gitops.sh`.
+  - `docs/rollback-runbook.md`: the primary `git revert` + `argocd app sync`
+    path, a worked example reverting a bad `sample-app/backend` image tag,
+    a manual `kubectl rollout undo`/`set image` fallback for when ArgoCD
+    itself is unavailable (with the warning that it must still be followed
+    by a `git revert` or the next selfHeal pass undoes it), and the
+    one-off case of the root app-of-apps Application itself breaking.
+  - Final README pass: root README's intro, Preview (added a 7th
+    screenshot of `check-drift.sh --help`), a new "Drift detection and
+    rollback" section, and Status all updated; `docs/README.md` and
+    `gitops/README.md` link the two new docs.
 
-## Resume point for Night 5
+## Resume point
 
-Start at **Phase 5**. All validators are green: `./scripts/validate.sh` (43
-Terraform test runs), `./scripts/validate-gitops.sh` (19 Ruby unit tests in
-`scripts/tests/` + YAML/structural checks + `helm template`), and
-`make validate-all` runs both. Next concrete steps:
+All five phases are complete. `make validate-all` is green (`./scripts/validate.sh`:
+43 Terraform test runs; `./scripts/validate-gitops.sh`: 26 Ruby unit tests in
+`scripts/tests/` + YAML/structural checks + `helm template`). If picking
+this back up:
 
-1. Pick and document the drift-detection approach: ArgoCD's `automated` sync
-   with `selfHeal: true` (already set on every Application) already
-   self-heals most drift continuously — the remaining piece is a
-   *detection/visibility* story for drift that selfHeal doesn't catch
-   (e.g. a resource excluded from sync, or someone wanting to review before
-   it's reverted). A scheduled `argocd app diff` (or `argocd app list -o
-   wide` for OutOfSync status) run via cron/CI is the natural fit given this
-   repo has no live cluster to wire real notifications against.
-2. Write the rollback runbook in `docs/`: the primary path is `git revert`
-   on the commit that introduced the unwanted change + `argocd app sync` (or
-   wait for selfHeal), with a documented manual `kubectl` fallback for when
-   ArgoCD itself is unavailable. Walk through a concrete example (e.g.
-   reverting a bad `sample-app/backend` image tag) so it's a tested
-   procedure, not just prose.
-3. Final README pass across the repo (root, `gitops/`, `sample-app/`,
-   `docs/`) once Phase 5 content lands.
-4. This project needs real visual/CLI output for the required `docs/
-   screenshots/` preview section before it can be marked COMPLETE — this
-   repo has no live cluster available in this environment, so lean on
-   terminal-style screenshots of real, verified command output (e.g.
-   `./scripts/validate.sh`, `./scripts/validate-gitops.sh`,
-   `ruby scripts/tests/check_manifest_test.rb`, `helm template` against
-   `gitops/argocd/values.yaml`) rather than fabricating `kubectl`/`argocd`
-   output against a cluster that doesn't exist here.
-5. Keep both validators green: `make validate-all` must still pass after any
-   changes.
-6. Once Phase 5, the README, and the screenshots are all in, write
-   `DAILY_REPORT.md` and only then set STATUS: COMPLETE.
+- Nothing is applied to a real AWS account from this environment — the
+  Terraform has never run `apply`, and `check-drift.sh`/`bootstrap-argocd.sh`
+  have never run against a live cluster. The natural next step for someone
+  continuing this project for real is provisioning dev in an actual AWS
+  account and exercising the drift/rollback runbooks against it end to end,
+  which would also unlock wiring a real `schedule:` trigger for
+  `check-drift.sh` into CI (see `docs/drift-detection.md`).
+- Open design decisions deliberately left as-is are tracked in
+  [docs/README.md](docs/README.md#open-design-decisions) (local Terraform
+  state, the IRSA role ARN placeholder, dev's opt-in open API endpoint).
 
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 
 ## Build history (moved from README)
 
-This project is being built in public, one phase at a time. See
-[PROGRESS.md](PROGRESS.md) for the full architecture, the phased build plan,
-and exactly what's done vs. what's next.
-
-**Current status: IN_PROGRESS — Phase 4 (sample app via GitOps) complete.**
+This project was built one phase at a time. See the phased build plan above
+for the full architecture and what was done each night, and
+[DAILY_REPORT.md](DAILY_REPORT.md) for a cross-night summary.
