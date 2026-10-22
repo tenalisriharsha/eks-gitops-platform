@@ -38,6 +38,8 @@ SHOTS = [
      "cat gitops/argocd/root-app.yaml"),
     ("06-child-application", "one child application the root deploys",
      "cat gitops/apps/backend-app.yaml"),
+    ("07-check-drift-help", "scripts/check-drift.sh: scheduled sync/health reporting",
+     "./scripts/check-drift.sh --help"),
 ]
 
 PAGE = """<!doctype html><meta charset="utf-8"><style>
