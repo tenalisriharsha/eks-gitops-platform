@@ -1,12 +1,18 @@
 # docs
 
 The architecture overview and phased build plan live in
-[PROGRESS.md](../PROGRESS.md) to avoid duplication. The drift-detection
-approach and rollback runbook will land here in Phase 5.
+[PROGRESS.md](../PROGRESS.md) to avoid duplication.
 
 - [cluster-access.md](cluster-access.md): how the EKS API endpoint is
   exposed, the guard against an endpoint open to `0.0.0.0/0`, and how to
   reach the cluster with restricted CIDRs or a private endpoint plus SSM.
+- [drift-detection.md](drift-detection.md): what ArgoCD's `selfHeal`
+  already corrects automatically, and `scripts/check-drift.sh` for the
+  visibility gap it leaves — a scheduled report of every Application's
+  sync/health status.
+- [rollback-runbook.md](rollback-runbook.md): the `git revert` + `argocd
+  app sync` rollback path, a worked example reverting a bad backend image
+  tag, and a manual `kubectl` fallback for when ArgoCD itself is down.
 
 ## Kubernetes version upgrades
 
