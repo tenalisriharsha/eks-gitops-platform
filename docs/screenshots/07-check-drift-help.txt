@@ -1,0 +1,9 @@
+$ ./scripts/check-drift.sh --help
+Usage: ./scripts/check-drift.sh [--diff]
+
+Reports ArgoCD sync/health status for every Application and exits
+non-zero if any is out of sync or unhealthy. Needs a live cluster with
+the argocd CLI already logged in (argocd login <server>) -- see
+docs/drift-detection.md.
+
+  --diff   also run "argocd app diff <app>" for every app that isn't Synced

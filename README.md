@@ -4,10 +4,10 @@
 
 Provisions a real AWS EKS cluster via Terraform — VPC, managed node groups,
 and IRSA — then layers ArgoCD on top in an app-of-apps pattern to
-GitOps-deploy a sample multi-service application. Drift detection and a
-documented rollback procedure are planned for Phase 5 and not built yet
-(ArgoCD `selfHeal` is enabled on every Application, but there is no drift
-reporting or rollback runbook in the repo today).
+GitOps-deploy a sample multi-service application. Every Application syncs
+with `selfHeal` on, a `check-drift.sh` script reports sync/health status for
+scheduled drift visibility, and a documented rollback runbook covers both
+the normal `git revert` path and a manual `kubectl` fallback.
 
 ## Preview
 
@@ -40,6 +40,12 @@ values against the pinned chart:
 ![ArgoCD root application](docs/screenshots/05-app-of-apps-root.png)
 ![A child application](docs/screenshots/06-child-application.png)
 
+**Drift detection.** `scripts/check-drift.sh` reports every Application's sync/health status and exits non-zero on
+drift, meant to run on a schedule against a real cluster (`selfHeal` already corrects most drift automatically — see
+[docs/drift-detection.md](docs/drift-detection.md)):
+
+![check-drift.sh --help](docs/screenshots/07-check-drift-help.png)
+
 ## Repository layout
 
 ```
@@ -53,7 +59,7 @@ gitops/
   apps/                  Child Applications, one per sample-app service
 sample-app/             frontend/backend/cache manifests deployed by gitops/apps
 docs/                   Architecture notes and runbooks
-scripts/                Local validation / bootstrap scripts
+scripts/                Local validation / bootstrap / drift-check scripts
 ```
 
 ## Working locally
@@ -100,12 +106,22 @@ three child Applications in `gitops/apps/` — see
 [sample-app/README.md](sample-app/README.md) for what gets deployed and what
 "synced" should look like.
 
+## Drift detection and rollback
+
+Every Application has `selfHeal: true`, so most drift (a manual `kubectl edit`, a stray deletion) is corrected
+automatically within seconds. `./scripts/check-drift.sh` adds the visibility piece selfHeal doesn't: a scheduled
+report of every Application's sync/health status, meant for cron or a scheduled CI job against a real cluster. See
+[docs/drift-detection.md](docs/drift-detection.md). If a bad change needs undoing, [docs/rollback-runbook.md](docs/rollback-runbook.md)
+walks through the `git revert` + `argocd app sync` path (with a worked example) and a manual `kubectl` fallback.
+
 ## Status
 
-Phases 1 to 4 are done: the Terraform foundation, the EKS cluster with IRSA, the ArgoCD bootstrap and a multi-service
-sample app deployed through GitOps, plus a hardening pass on the EKS API endpoint. **Not built yet:** Phase 5 (drift
-detection and a rollback runbook). Everything is validated offline (`terraform validate`, `terraform test`, manifest
-checks); the Terraform has never been applied to a real AWS account. See [PROGRESS.md](PROGRESS.md) for the plan.
+All five planned phases are done: the Terraform foundation, the EKS cluster with IRSA, the ArgoCD bootstrap, a
+multi-service sample app deployed through GitOps, a hardening pass on the EKS API endpoint, and drift
+detection/rollback tooling and docs. Everything is validated offline (`terraform validate`, `terraform test`, manifest
+checks, `check-drift.sh` unit tests against a stub `argocd` CLI); the Terraform has never been applied to a real AWS
+account, and the ArgoCD/drift tooling has never run against a live cluster. See [PROGRESS.md](PROGRESS.md) for the
+full build history and [DAILY_REPORT.md](DAILY_REPORT.md) for a summary.
 
 ## License
 
