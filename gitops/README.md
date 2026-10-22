@@ -19,3 +19,11 @@ cluster with `./scripts/validate-gitops.sh`.
 
 Child `Application` resources, one per service in `sample-app/` — see
 [`apps/README.md`](apps/README.md).
+
+## After bootstrap: drift and rollback
+
+Every Application here sets `selfHeal: true`, so most drift self-corrects.
+For scheduled visibility into sync/health status, see
+[docs/drift-detection.md](../docs/drift-detection.md)
+(`scripts/check-drift.sh`). If a bad change needs undoing, see
+[docs/rollback-runbook.md](../docs/rollback-runbook.md).
