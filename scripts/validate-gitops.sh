@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Validates the GitOps manifests without needing a live cluster:
-#   1. Unit tests for scripts/check_manifest.rb and the helm repo setup in
-#      this script and bootstrap-argocd.sh (scripts/tests/, pure Ruby stdlib +
-#      bundled minitest — no network, no cluster).
+#   1. Unit tests for scripts/check_manifest.rb, scripts/check-drift.sh, and
+#      the helm repo setup in this script and bootstrap-argocd.sh
+#      (scripts/tests/, pure Ruby stdlib + bundled minitest — no network, no
+#      cluster).
 #   2. YAML syntax + required-field checks (scripts/check_manifest.rb, pure
 #      Ruby stdlib — no network, no cluster).
 #   3. `helm template` rendering of gitops/argocd/values.yaml against the
@@ -16,6 +17,7 @@ chart_version="10.9.6"
 echo "==> scripts/tests unit tests"
 ruby "$repo_root/scripts/tests/check_manifest_test.rb"
 ruby "$repo_root/scripts/tests/helm_repo_setup_test.rb"
+ruby "$repo_root/scripts/tests/check_drift_test.rb"
 
 echo "==> YAML syntax + structural checks"
 manifests=$(find "$repo_root/gitops" "$repo_root/sample-app" -type f \( -name '*.yaml' -o -name '*.yml' \))
