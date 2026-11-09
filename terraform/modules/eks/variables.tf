@@ -3,8 +3,8 @@ variable "cluster_name" {
   type        = string
 
   validation {
-    condition     = length(var.cluster_name) > 0 && length(var.cluster_name) <= 100
-    error_message = "cluster_name must be between 1 and 100 characters."
+    condition     = length(var.cluster_name) > 0 && length(var.cluster_name) <= 51
+    error_message = "cluster_name must be between 1 and 51 characters: this module appends \"-cluster-role\" (13 characters) to derive an IAM role name, and IAM role names are capped at 64 characters."
   }
 }
 
