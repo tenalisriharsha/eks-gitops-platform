@@ -294,3 +294,33 @@ run "rejects_malformed_cidr" {
     var.endpoint_public_access_cidrs,
   ]
 }
+
+# --- cluster_name length (must leave room for the "-cluster-role" IAM role suffix) ------
+
+run "rejects_cluster_name_that_overflows_iam_role_name" {
+  command = plan
+
+  variables {
+    # 52 chars: one over the limit once the 13-char "-cluster-role" suffix is appended
+    # (52 + 13 = 65 > the IAM role name limit of 64).
+    cluster_name = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  expect_failures = [
+    var.cluster_name,
+  ]
+}
+
+run "accepts_cluster_name_at_the_limit" {
+  command = plan
+
+  variables {
+    # 51 chars: at the limit, so "<cluster_name>-cluster-role" is exactly 64 chars.
+    cluster_name = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  assert {
+    condition     = aws_iam_role.cluster.name == "${var.cluster_name}-cluster-role"
+    error_message = "cluster IAM role name should be derived from cluster_name"
+  }
+}
