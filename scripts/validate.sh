@@ -25,4 +25,7 @@ for dir in "${dirs[@]}"; do
   )
 done
 
+echo "==> terraform/tests/required_version_test.rb"
+ruby "$repo_root/terraform/tests/required_version_test.rb"
+
 echo "All checks passed."

@@ -77,7 +77,12 @@ make validate-all              # both
 `validate.sh` runs `terraform fmt -check`, `terraform validate`, and
 `terraform test` for every Terraform module and the dev environment, against
 **mocked** `aws`/`tls` providers. `terraform init` still downloads the real
-providers from registry.terraform.io, so this needs network access.
+providers from registry.terraform.io, so this needs network access. It then
+runs `terraform/tests/required_version_test.rb`, which downloads a real
+Terraform binary pinned to each module's declared `required_version` minimum
+and runs `init`+`validate` against it (from releases.hashicorp.com, cached
+under the OS temp dir after the first run), so a lower bound that doesn't
+match reality fails the script instead of only surfacing on someone's laptop.
 
 `validate-gitops.sh` runs the Ruby unit tests in `scripts/tests/`, then
 checks YAML syntax and required fields on everything under `gitops/` and
