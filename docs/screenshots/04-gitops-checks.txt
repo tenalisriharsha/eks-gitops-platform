@@ -1,32 +1,34 @@
 $ ./scripts/validate-gitops.sh
 ==> scripts/tests unit tests
-Run options: --seed 32664
+Run options: --seed 9486
 
 # Running:
 
 ................
 
-Finished in 3.173426s, 5.0419 runs/s, 18.5919 assertions/s.
+Finished in 2.328841s, 6.8704 runs/s, 25.3345 assertions/s.
 
 16 runs, 59 assertions, 0 failures, 0 errors, 0 skips
-Run options: --seed 11017
+Run options: --seed 38236
 
 # Running:
 
 ...
 
-Finished in 0.498980s, 6.0123 runs/s, 26.0531 assertions/s.
+Finished in 0.579024s, 5.1811 runs/s, 22.4516 assertions/s.
 
 3 runs, 13 assertions, 0 failures, 0 errors, 0 skips
-Run options: --seed 37672
+Run options: --seed 50789
 
 # Running:
 
-.......
+..S....
 
-Finished in 1.206175s, 5.8035 runs/s, 22.3848 assertions/s.
+Finished in 0.959469s, 7.2957 runs/s, 25.0138 assertions/s.
 
-7 runs, 27 assertions, 0 failures, 0 errors, 0 skips
+7 runs, 24 assertions, 0 failures, 0 errors, 1 skips
+
+You have skipped tests. Run with --verbose for details.
 ==> YAML syntax + structural checks
 ==> helm template: gitops/argocd/values.yaml against argo-cd 10.9.6
 All GitOps checks passed.

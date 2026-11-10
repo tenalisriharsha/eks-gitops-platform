@@ -36,7 +36,10 @@ plus a manual `kubectl` fallback.
 
 - `./scripts/validate.sh` — Terraform `fmt -check`, `validate`, and `test`
   for every module and the `dev` environment, against mocked `aws`/`tls`
-  providers: **43 test runs, all passing**.
+  providers: **43 test runs, all passing**. It then runs
+  `terraform/tests/required_version_test.rb`, which validates each module's
+  declared `required_version` minimum against a real pinned Terraform
+  binary: **4 test runs, all passing**.
 - `./scripts/validate-gitops.sh` — Ruby unit tests plus YAML/structural
   checks plus a `helm template` render: **26 unit tests across three test
   files** (`check_manifest_test.rb`, `helm_repo_setup_test.rb`,
